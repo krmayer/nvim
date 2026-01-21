@@ -20,6 +20,22 @@ vim.o.shiftwidth = 2
 
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist)
+vim.keymap.set('n', '<leader>r', function()
+  vim.cmd('w')
+  local file = vim.fn.expand('%')
+  local ft = vim.bo.filetype
+  local cmd
+  if ft == 'python' then
+    cmd = 'uv run ' .. file
+  elseif ft == 'cpp' or ft == 'c' then
+    local output = vim.fn.expand('%:r')
+    cmd = 'g++ -std=c++20 -o ' .. output .. ' ' .. file .. ' && ./' .. output
+  else
+    vim.notify('No runner for filetype: ' .. ft, vim.log.levels.WARN)
+    return
+  end
+  vim.cmd('split | terminal ' .. cmd)
+end)
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>')
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>')
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>')
