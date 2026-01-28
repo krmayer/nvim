@@ -158,6 +158,13 @@ require('lazy').setup({
   { 'numToStr/Comment.nvim', opts = {} },
 
   {
+    'nvzone/typr',
+    dependencies = 'nvzone/volt',
+    opts = {},
+    cmd = { 'Typr', 'TyprStats' },
+  },
+
+  {
     'folke/tokyonight.nvim',
     priority = 1000,
     config = function()
