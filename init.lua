@@ -21,6 +21,11 @@ vim.o.shiftwidth = 2
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist)
 vim.keymap.set('n', '<leader>r', function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].buftype == 'terminal' then
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end
+  end
   vim.cmd('w')
   local file = vim.fn.expand('%')
   local ft = vim.bo.filetype
@@ -34,7 +39,8 @@ vim.keymap.set('n', '<leader>r', function()
     vim.notify('No runner for filetype: ' .. ft, vim.log.levels.WARN)
     return
   end
-  vim.cmd('split | terminal ' .. cmd)
+  vim.cmd('8split | terminal ' .. cmd)
+  vim.cmd('wincmd p')
 end)
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>')
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>')
@@ -148,7 +154,7 @@ require('lazy').setup({
       format_on_save = { timeout_ms = 500, lsp_format = 'fallback' },
       formatters_by_ft = {
         lua = { 'stylua' },
-        python = { 'ruff_format' },
+        python = { 'ruff_fix', 'ruff_format' },
         c = { 'clang-format' },
         cpp = { 'clang-format' },
       },
