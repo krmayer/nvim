@@ -1,26 +1,73 @@
+-- Leader key (used as prefix for custom bindings like <leader>f, <leader>s, etc.)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
-vim.o.number = true
-vim.o.relativenumber = true
-vim.o.mouse = 'a'
-vim.o.clipboard = 'unnamedplus'
-vim.o.undofile = true
-vim.o.ignorecase = true
-vim.o.smartcase = true
-vim.o.signcolumn = 'yes'
-vim.o.updatetime = 250
-vim.o.splitright = true
-vim.o.splitbelow = true
-vim.o.cursorline = true
-vim.o.scrolloff = 8
+-- UI
+vim.o.number = true              -- show absolute line number on cursor line
+vim.o.relativenumber = true      -- show relative numbers on other lines (fast jumps: 5j, 12k)
+vim.o.cursorline = true          -- highlight the line the cursor is on
+vim.o.signcolumn = 'yes'         -- always show the sign column so text doesn't jump when diagnostics appear
+vim.o.scrolloff = 8              -- keep 8 lines visible above/below cursor when scrolling
+vim.o.splitright = true          -- new vertical splits open to the right
+vim.o.splitbelow = true          -- new horizontal splits open below
+vim.o.winborder = 'rounded'      -- rounded borders for all floating windows (hover, signature, etc.)
+vim.o.list = true                -- visualize whitespace
+vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+vim.o.breakindent = true         -- wrapped lines keep visual indent
+
+-- Behavior
+vim.o.mouse = 'a'                -- enable mouse in all modes
+vim.o.undofile = true            -- persist undo history across restarts
+vim.o.ignorecase = true          -- case-insensitive search…
+vim.o.smartcase = true           -- …unless the query contains a capital letter
+vim.o.updatetime = 250           -- faster CursorHold (used by LSP, gitsigns, etc.)
+vim.o.timeoutlen = 300           -- snappier which-key / multi-key mapping response
+vim.o.confirm = true             -- prompt to save instead of erroring on :q with unsaved changes
+vim.o.inccommand = 'split'       -- live preview of :s substitutions in a split
+vim.schedule(function()
+  vim.o.clipboard = 'unnamedplus'  -- sync yank/paste with system clipboard (deferred so startup stays fast)
+end)
+
+-- Indentation (2 spaces, no tabs)
 vim.o.expandtab = true
 vim.o.tabstop = 2
 vim.o.shiftwidth = 2
-vim.o.winborder = 'rounded'
-vim.o.confirm = true
 
+-- Diagnostics: sort by severity, only underline errors, virtual text with source when ambiguous
+vim.diagnostic.config {
+  severity_sort = true,
+  float = { source = 'if_many' },
+  underline = { severity = vim.diagnostic.severity.ERROR },
+  signs = {},
+  virtual_text = { source = 'if_many', spacing = 2 },
+}
+
+-- Diagnostics quickfix list (use built-in ]d / [d to navigate, <C-w>d to peek)
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist)
+
+-- Exit terminal mode without the awful default <C-\><C-n>
+vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>')
+
+-- Keep cursor centered on half-page jumps and search results
+vim.keymap.set('n', '<C-d>', '<C-d>zz')
+vim.keymap.set('n', '<C-u>', '<C-u>zz')
+vim.keymap.set('n', 'n', 'nzzzv')
+vim.keymap.set('n', 'N', 'Nzzzv')
+
+-- Join lines without moving the cursor
+vim.keymap.set('n', 'J', 'mzJ`z')
+
+-- Move visually selected lines up/down, preserving the selection and re-indenting
+vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv")
+vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv")
+
+-- Paste over a visual selection without clobbering the clipboard
+vim.keymap.set('x', '<leader>p', [["_dP]])
+
+-- Project-wide substitute of the word under the cursor (interactive — edit before pressing Enter)
+vim.keymap.set('n', '<leader>s', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
+
+-- Run the current file in a small terminal split (python via uv, C/C++ via g++ c++23)
 vim.keymap.set('n', '<leader>r', function()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.bo[buf].buftype == 'terminal' then
@@ -44,18 +91,12 @@ vim.keymap.set('n', '<leader>r', function()
   vim.cmd('wincmd p')
 end)
 
+-- Briefly highlight yanked text so you can see what got copied
 vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
-vim.diagnostic.config {
-  severity_sort = true,
-  float = { source = 'if_many' },
-  underline = { severity = vim.diagnostic.severity.ERROR },
-  signs = {},
-  virtual_text = { source = 'if_many', spacing = 2 },
-}
-
+-- Bootstrap lazy.nvim plugin manager on first run
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system { 'git', 'clone', '--filter=blob:none', '--branch=stable', 'https://github.com/folke/lazy.nvim.git', lazypath }
@@ -63,6 +104,7 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require('lazy').setup({
+  -- Syntax highlighting + smart indent via tree-sitter parsers
   {
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
@@ -75,6 +117,7 @@ require('lazy').setup({
     },
   },
 
+  -- Fuzzy finder for files, grep, buffers
   {
     'nvim-telescope/telescope.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
@@ -86,6 +129,8 @@ require('lazy').setup({
     },
   },
 
+  -- LSP: Mason installs the servers, nvim-lspconfig wires them up. Default nvim 0.11+ LSP keymaps apply:
+  -- K (hover), grn (rename), grr (references), gra (code action), gri (implementation), gO (symbols), <C-]> (definition).
   {
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -119,6 +164,7 @@ require('lazy').setup({
     end,
   },
 
+  -- Autocompletion (LSP, paths, buffer words); <C-y> accepts, <C-n>/<C-p> navigate
   {
     'saghen/blink.cmp',
     version = '1.*',
@@ -131,6 +177,7 @@ require('lazy').setup({
     },
   },
 
+  -- Format on save (falls back to LSP formatting when no formatter is configured)
   {
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
@@ -145,6 +192,7 @@ require('lazy').setup({
     },
   },
 
+  -- Typing practice (:Typr, :TyprStats)
   {
     'nvzone/typr',
     dependencies = 'nvzone/volt',
@@ -152,6 +200,7 @@ require('lazy').setup({
     cmd = { 'Typr', 'TyprStats' },
   },
 
+  -- Colorscheme
   {
     'folke/tokyonight.nvim',
     priority = 1000,
