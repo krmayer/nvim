@@ -17,8 +17,9 @@ vim.o.scrolloff = 8
 vim.o.expandtab = true
 vim.o.tabstop = 2
 vim.o.shiftwidth = 2
+vim.o.winborder = 'rounded'
+vim.o.confirm = true
 
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist)
 vim.keymap.set('n', '<leader>r', function()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -34,7 +35,7 @@ vim.keymap.set('n', '<leader>r', function()
     cmd = 'uv run ' .. file
   elseif ft == 'cpp' or ft == 'c' then
     local output = vim.fn.expand('%:r')
-    cmd = 'g++ -std=c++20 -o ' .. output .. ' ' .. file .. ' && ./' .. output
+    cmd = 'g++ -std=c++23 -o ' .. output .. ' ' .. file .. ' && ./' .. output
   else
     vim.notify('No runner for filetype: ' .. ft, vim.log.levels.WARN)
     return
@@ -42,10 +43,6 @@ vim.keymap.set('n', '<leader>r', function()
   vim.cmd('8split | terminal ' .. cmd)
   vim.cmd('wincmd p')
 end)
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>')
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>')
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>')
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>')
 
 vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
@@ -53,7 +50,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 vim.diagnostic.config {
   severity_sort = true,
-  float = { border = 'rounded', source = 'if_many' },
+  float = { source = 'if_many' },
   underline = { severity = vim.diagnostic.severity.ERROR },
   signs = {},
   virtual_text = { source = 'if_many', spacing = 2 },
@@ -119,19 +116,6 @@ require('lazy').setup({
           end,
         },
       }
-
-      vim.api.nvim_create_autocmd('LspAttach', {
-        callback = function(event)
-          local map = function(keys, func)
-            vim.keymap.set('n', keys, func, { buffer = event.buf })
-          end
-          map('grd', vim.lsp.buf.definition)
-          map('grr', vim.lsp.buf.references)
-          map('grn', vim.lsp.buf.rename)
-          map('gra', vim.lsp.buf.code_action)
-          map('K', vim.lsp.buf.hover)
-        end,
-      })
     end,
   },
 
@@ -160,8 +144,6 @@ require('lazy').setup({
       },
     },
   },
-
-  { 'numToStr/Comment.nvim', opts = {} },
 
   {
     'nvzone/typr',
